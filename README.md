@@ -10,6 +10,7 @@
 
 ## 🏗️ Architecture
 
+<img width="2559" height="4805" alt="image" src="https://github.com/user-attachments/assets/3bb06876-bd3d-4d33-a621-5ca16394c68c" />
 
 
 
