@@ -6,103 +6,20 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Redis](https://img.shields.io/badge/redis-7.0+-red.svg)](https://redis.io/)
 
----
 
-## 🎯 What's Fixed
-
-This corrected version addresses **3 critical workflow bugs** from the original implementation:
-
-### ✅ 1. Intelligent Explanation Routing (FIXED)
-- **Problem**: No orchestrator to decide between template vs LLM explanations
-- **Solution**: 
-  - Added `ExplanationOrchestrator` class
-  - Routes high-confidence cases → fast templates
-  - Routes ambiguous/conflicting cases → Gemini LLM
-  - Detects expert disagreement for complex explanations
-
-### ✅ 2. Human-in-the-Loop Workflow (FIXED)
-- **Problem**: Missing kill switch, feedback not flowing back to detection engine
-- **Solution**:
-  - Implemented full kill switch with activate/deactivate endpoints
-  - Detection engine now subscribes to real-time feedback
-  - Dashboard uses Redis for persistence (not memory)
-  - Feedback flows to both detection engine (immediate) and feedback loop (batch)
-
-### ✅ 3. Online Learning Loop (FIXED)
-- **Problem**: Weight updates not reaching detection engine, incorrect delay calculations
-- **Solution**:
-  - Detection engine subscribes to `weight_updates` channel
-  - Proper timestamp-based delay calculation
-  - Importance weighting using exponential decay
-  - Batch processing with periodic updates
-
----
 
 ## 🏗️ Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         Data Plane                               │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐     │
-│  │  Transaction │───▶│   Pathway    │───▶│ Multi-Expert │     │
-│  │    Stream    │    │  Connector   │    │  Ensemble    │     │
-│  └──────────────┘    └──────────────┘    └──────┬───────┘     │
-│                                                   │              │
-│                                          ┌────────▼────────┐    │
-│                                          │ Alert + Context │    │
-│                                          └────────┬────────┘    │
-└────────────────────────────────────────────────┬───────────────┘
-                                                  │
-┌─────────────────────────────────────────────────▼───────────────┐
-│                    Microservice 2: Explanation                   │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │              Orchestrator Agent                           │  │
-│  │  ┌─────────────────────┬─────────────────────────────┐  │  │
-│  │  │  High Confidence    │  Ambiguous/High Value       │  │  │
-│  │  │  ↓                  │  ↓                          │  │  │
-│  │  │  Template           │  LLM Explanation            │  │  │
-│  │  │  Explanation        │  (Gemini)                   │  │  │
-│  │  └──────────┬──────────┴───────────┬─────────────────┘  │  │
-│  └─────────────┼──────────────────────┼────────────────────┘  │
-│                │                      │                         │
-│         ┌──────▼──────────────────────▼──────┐                │
-│         │  Explanation & SAR Draft           │                │
-│         └────────────────┬───────────────────┘                │
-└──────────────────────────┼────────────────────────────────────┘
-                           │
-┌──────────────────────────▼────────────────────────────────────┐
-│              Microservice 4: HIL Dashboard                     │
-│  ┌────────────────┐  ┌─────────────┐  ┌──────────────┐      │
-│  │ Analyst        │  │   Analyst   │  │ Kill Switch  │      │
-│  │ Dashboard      │◀─│  Feedback   │  │              │      │
-│  └────────┬───────┘  └─────┬───────┘  └──────┬───────┘      │
-│           │                 │                  │               │
-└───────────┼─────────────────┼──────────────────┼──────────────┘
-            │                 │                  │
-            │        ┌────────▼────────┐         │
-            │        │    Feedback     │         │
-            │        │                 │         │
-            └────────▶    Redis        ◀─────────┘
-                     │   Pub/Sub       │
-                     └────────┬────────┘
-                              │
-┌─────────────────────────────▼─────────────────────────────────┐
-│       Microservice 3: Weight Management Service                │
-│  ┌──────────────────┐         ┌──────────────────┐           │
-│  │ Delayed Feedback │────────▶│ Advanced Online  │           │
-│  │   Handler        │         │    Learning      │           │
-│  └──────────────────┘         └────────┬─────────┘           │
-│                                         │                      │
-│                                ┌────────▼────────┐            │
-│                                │ Expert Weights  │            │
-│                                └────────┬────────┘            │
-└─────────────────────────────────────────┼────────────────────┘
-                                          │
-                                          ▼
-                              Back to Detection Engine
-```
 
----
+
+
+
+
+
+
+
+
+
 
 ## 🚀 Quick Start
 
@@ -367,30 +284,7 @@ decay_rate = 0.1         # Importance decay (higher = faster decay)
 
 ---
 
-## 🐛 Troubleshooting
 
-See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) for detailed troubleshooting.
-
-**Common Issues**:
-
-1. **Services can't connect to Redis**
-   ```bash
-   redis-cli ping  # Should return PONG
-   ```
-
-2. **No alerts in dashboard**
-   ```bash
-   redis-cli MONITOR | grep "PUBLISH"
-   ```
-
-3. **Feedback not updating weights**
-   ```bash
-   # Check logs
-   grep "weight" logs/detection_engine.log
-   grep "feedback" logs/feedback_loop.log
-   ```
-
----
 
 ## 📈 Performance
 
@@ -401,31 +295,7 @@ See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) for detailed troubleshooting.
 
 ---
 
-## 🤝 Contributing
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
----
-
-## 📝 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
----
-
-## 🙏 Acknowledgments
-
-- **Pathway**: Real-time stream processing
-- **Redis**: Pub/sub and caching
-- **Gemini**: LLM explanations
-- **XGBoost/LightGBM**: Expert models
-- **Kaggle**: Credit card fraud dataset
-
----
 
 ## 📚 Documentation
 
@@ -559,207 +429,7 @@ Detection Engine resumes processing
 
 ---
 
-## 🔐 Security Considerations
 
-### Production Deployment
 
-1. **Redis Security**
-   ```bash
-   # In redis.conf
-   requirepass your-strong-password
-   bind 127.0.0.1
-   protected-mode yes
-   ```
 
-2. **API Authentication**
-   ```python
-   # Add to FastAPI apps
-   from fastapi.security import HTTPBearer
-   
-   security = HTTPBearer()
-   
-   @app.post("/feedback/{alert_id}")
-   async def submit_feedback(
-       alert_id: str,
-       feedback: dict,
-       credentials: HTTPAuthorizationCredentials = Depends(security)
-   ):
-       # Verify token
-       verify_token(credentials.credentials)
-       ...
-   ```
 
-3. **Environment Variables**
-   ```bash
-   # Never commit .env files
-   # Use secrets management in production
-   export GEMINI_API_KEY=$(vault read secret/gemini_key)
-   ```
-
-4. **Network Isolation**
-   ```yaml
-   # docker-compose.yml
-   services:
-     redis:
-       networks:
-         - internal  # Not exposed externally
-   ```
-
----
-
-## 📊 Metrics & Observability
-
-### Key Metrics to Track
-
-1. **Detection Performance**
-   - Transaction throughput (txn/sec)
-   - Average latency (ms)
-   - Expert accuracy over time
-   - False positive/negative rates
-
-2. **Explanation Quality**
-   - Template vs LLM usage ratio
-   - Explanation generation time
-   - Cache hit rate
-
-3. **Feedback Loop**
-   - Feedback delay distribution
-   - Weight update frequency
-   - Expert weight drift
-
-4. **System Health**
-   - Redis memory usage
-   - Service uptime
-   - WebSocket connections
-   - Error rates
-
-### Monitoring Setup (Example)
-
-```python
-# Add to services
-from prometheus_client import Counter, Histogram
-
-# Metrics
-transactions_processed = Counter(
-    'transactions_processed_total',
-    'Total transactions processed'
-)
-
-processing_time = Histogram(
-    'transaction_processing_seconds',
-    'Time to process transaction'
-)
-
-# Usage
-transactions_processed.inc()
-with processing_time.time():
-    process_transaction(txn)
-```
-
----
-
-## 🚧 Roadmap
-
-### Phase 1: Core Functionality ✅
-- [x] Multi-expert ensemble
-- [x] Contextual bandits
-- [x] Intelligent explanation routing
-- [x] Human-in-the-loop feedback
-- [x] Online learning
-- [x] Kill switch
-
-### Phase 2: Enhanced Features (In Progress)
-- [ ] Model versioning and rollback
-- [ ] A/B testing framework
-- [ ] Advanced analytics dashboard
-- [ ] Automated model retraining
-- [ ] Multi-tenancy support
-
-### Phase 3: Enterprise Features (Planned)
-- [ ] GDPR compliance tools
-- [ ] Audit logging
-- [ ] Role-based access control
-- [ ] Custom rule builder UI
-- [ ] Integration with SIEM systems
-
----
-
-## 🤔 FAQ
-
-**Q: Can I use this with my own fraud dataset?**
-A: Yes! Replace the Kaggle dataset loader in `detection_engine/main.py` with your own data source.
-
-**Q: How do I add a new expert model?**
-A: Create a new class in `detection_engine/experts/` inheriting from `BaseExpert`, implement the `predict()` method, and add it to the ensemble in `main.py`.
-
-**Q: Can I use a different LLM instead of Gemini?**
-A: Yes! Modify `explanation_service/explanation_generator.py` to use OpenAI, Claude, or any other LLM API.
-
-**Q: How does the system handle concept drift?**
-A: Through continuous online learning and contextual bandits that adapt expert weights based on recent performance.
-
-**Q: What happens if Redis goes down?**
-A: Services will reconnect automatically. Use Redis Sentinel or Redis Cluster for high availability in production.
-
-**Q: Can I run this without Docker?**
-A: Yes! Use the manual setup instructions with `start_services.sh`.
-
-**Q: How do I scale for high throughput?**
-A: Deploy multiple detection engine instances, use Redis Cluster, and consider Kafka for higher throughput than Redis pub/sub.
-
----
-
-## 💡 Best Practices
-
-### For Analysts
-1. **Review all ambiguous cases** (scores 0.3-0.7)
-2. **Provide detailed notes** in feedback
-3. **Use kill switch** if false positive rate spikes
-4. **Monitor expert agreement** for model drift
-
-### For Developers
-1. **Run integration tests** before deploying
-2. **Monitor Redis memory** usage
-3. **Set appropriate TTLs** on all keys
-4. **Log all critical decisions** with context
-5. **Version control** expert model files
-
-### For Operations
-1. **Set up health checks** for all services
-2. **Configure log rotation** to prevent disk fill
-3. **Monitor feedback delay** distribution
-4. **Backup Redis** data regularly
-5. **Test failover** scenarios
-
----
-
-## 📞 Support
-
-- **Issues**: [GitHub Issues](https://github.com/yourusername/sentinelflow/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/sentinelflow/discussions)
-- **Email**: support@sentinelflow.ai
-
----
-
-## 🌟 Star History
-
-If you find this project useful, please consider giving it a star! ⭐
-
----
-
-## 📖 Citation
-
-If you use SentinelFlow in your research or project, please cite:
-
-```bibtex
-@software{sentinelflow2025,
-  title = {SentinelFlow: Real-time Fraud Detection with Ambient AI},
-  author = {Your Name},
-  year = {2025},
-  url = {https://github.com/yourusername/sentinelflow}
-}
-```
-
----
-
-**Built with ❤️ for the fraud prevention community**
