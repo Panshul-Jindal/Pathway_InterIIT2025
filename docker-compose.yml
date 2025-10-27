@@ -1,0 +1,140 @@
+version: '3.8'
+
+services:
+  # Redis - Message broker and cache
+  redis:
+    image: redis:7-alpine
+    container_name: sentinelflow-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --appendfsync everysec
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - sentinelflow
+
+  # Detection Engine - Core fraud detection
+  detection_engine:
+    build:
+      context: .
+      dockerfile: Dockerfile.detection
+    container_name: sentinelflow-detection
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - KAGGLE_DATASET_PATH=/app/data/kaggle_creditcard.csv
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./data:/app/data
+      - ./detection_engine:/app/detection_engine
+      - ./shared:/app/shared
+    networks:
+      - sentinelflow
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Explanation Service - Generates human-readable explanations
+  explanation_service:
+    build:
+      context: .
+      dockerfile: Dockerfile.explanation
+    container_name: sentinelflow-explanation
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - "8001:8001"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./explanation_service:/app/explanation_service
+      - ./shared:/app/shared
+    networks:
+      - sentinelflow
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Dashboard - Web interface for analysts
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.dashboard
+    container_name: sentinelflow-dashboard
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - "8002:8002"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./dashboard:/app/dashboard
+      - ./shared:/app/shared
+    networks:
+      - sentinelflow
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Feedback Loop - Online learning and weight updates
+  feedback_loop:
+    build:
+      context: .
+      dockerfile: Dockerfile.feedback
+    container_name: sentinelflow-feedback
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./feedback_loop:/app/feedback_loop
+      - ./shared:/app/shared
+    networks:
+      - sentinelflow
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  sentinelflow:
+    driver: bridge
+
+volumes:
+  redis_data:
+    driver: local

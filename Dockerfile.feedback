@@ -1,0 +1,14 @@
+# ==========================================
+# Dockerfile.feedback
+# ==========================================
+FROM python:3.10-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY feedback_loop /app/feedback_loop
+COPY shared /app/shared
+
+CMD ["python", "-m", "feedback_loop.main"]
