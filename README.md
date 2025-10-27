@@ -28,8 +28,7 @@
 
 ```bash
 # 1. Clone and navigate
-git clone https://github.com/yourusername/sentinelflow.git
-cd sentinelflow
+clone the repo
 
 # 2. Set environment variables
 echo "GEMINI_API_KEY=your-api-key-here" > .env
